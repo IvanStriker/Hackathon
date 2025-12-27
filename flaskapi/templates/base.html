@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block title %}{% endblock %}
+</head>
+<body>
+    <h1 id="app-name" style="text-align: center;">Book Library</h1>
+    <div id="header">
+        {% block header %}{% endblock %}
+    </div>
+    
+    <div id="content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div id="footer">
+        {% block footer %}{% endblock %}
+    </div>
+</body>
+</html>

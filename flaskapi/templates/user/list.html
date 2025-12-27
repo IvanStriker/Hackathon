@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}
+    <title>{{name}}</title>
+{% endblock %}
+
+{% block content %}
+    <Table>
+        <tr style="text-align: center; background-color: rgb(88, 175, 247);">
+            <th>Id</th>
+            <th>Name</th>
+            <th>Email</th>
+            <td>Actions</td>
+        </tr>
+
+        {% for i, user in users %}
+        <tr {% if i%2 != 0 %} style="background-color: rgba(163, 203, 247, 0.847);" {% endif %}>
+            <td>{{user.id}}</td>
+            <td>{{user.name}}</td>
+            <td>{{user.email}}</td>
+            <td><a href="/user/{{user.id}}/update" style="margin-right: 20px;">Edit</a><a href="/user/{{user.id}}/delete">Delete</a></td>
+        </tr>
+        {% endfor %}
+    </Table>
+{% endblock %}
