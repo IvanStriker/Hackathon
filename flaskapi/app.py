@@ -3,10 +3,13 @@
 from flask import Flask, render_template, flash, redirect, url_for, request
 # from flask_sqlalchemy import SQLAlchemy
 import sqlalchemy as sa
+from sqlalchemy import select
 from db.base import db
 import re
 from models.user import User
 from models.book import Book
+from models.bookarchive import BookArchive
+from flask_migrate import Migrate
 
 # create the app
 app = Flask(__name__)
@@ -16,6 +19,8 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///booklibrary.db"
 
 # initialize the app with the extension
 db.init_app(app)
+
+migrate = Migrate(app=app, db=db)
 
 # db = SQLAlchemy(app=app)
     
@@ -28,7 +33,19 @@ db.init_app(app)
 
 @app.route("/")
 def load_root():
-    return render_template("home.html")
+    users = db.session.execute(db.select(User).order_by(User.name)).scalars().all()
+    books = db.session.execute(db.select(Book).order_by(Book.name)).scalars()
+
+    # user1 = users[1]
+    # print(users)
+    # print(user1.book_archive)
+    # print(user1.book_archive.books)
+    # print(book_arv)
+    # described_books = [item.name for item in book_arv]
+    # return render_template("home.html", users = users, described_books = described_books, books = books)
+
+    return render_template("home.html", users = users, books = books)
+
 
 @app.route("/user/<string:name>")
 def load_user(name):
@@ -62,6 +79,7 @@ def update_user(id):
 
             db.session.commit()
             return redirect("/users")
+        
         except sa.exc.IntegrityError as IE:
             db.session.rollback()
             print(f"Error: Email exists")
@@ -86,7 +104,7 @@ def delete_user(id):
 
 @app.route("/.well-known/appspecific/com.chrome.devtools.json", methods=["GET"])
 def use_devtools():
-    return render_template("user/detail.html", user="I now that you are using the devtools")
+    return render_template("user/user.html", user="Developer")
 
 @app.errorhandler(404)
 def page_not_found(error):
@@ -112,14 +130,47 @@ with app.app_context():
                 {"name": "user4", "email": "email4@gmail.com"},
                 {"name": "user5", "email": "email5@gmail.com"},
                 ]
+    book_infors = [{"name": "book1", "author": "author1", "category": "category1", "describe": "describe1", "publication_date": "10.11.2025", "reading_status": "reading"},
+                {"name": "book2", "author": "author2", "category": "category2", "describe": "describe2", "publication_date": "11.11.2025", "reading_status": "reading"},
+                {"name": "book3", "author": "author3", "category": "category3", "describe": "describe3", "publication_date": "12.11.2025", "reading_status": "reading"},
+                {"name": "book4", "author": "author4", "category": "category4", "describe": "describe4", "publication_date": "13.11.2025", "reading_status": "reading"},
+                {"name": "book5", "author": "author5", "category": "category5", "describe": "describe5", "publication_date": "14.11.2025", "reading_status": "reading"},
+                ]
 
     try:
+        db.drop_all()
+
         db.create_all()
-        for user in user_infors:
-            db.session.add(User(**user))
+
+        for user_inf in user_infors:
+            db.session.add(User(**user_inf))
             db.session.commit()
-    except Exception as e:
-        pass
+
+        for book_inf in book_infors:
+            db.session.add(Book(**book_inf))
+            db.session.commit()
+
+        # AttributeError: 'Select' object has no attribute 'name'
+        # user1 = select(User).where(User.id == 1)
+
+        user1 = db.session.execute(db.select(User).order_by(User.id == 1)).scalar()
+        books = db.session.execute(db.select(Book).order_by(Book.name)).scalars()
+
+        # print(user1.name, book1.name)
+
+        for book in books:
+            user1.add_to_archive(book)
+
+        stmt = (
+            select(BookArchive)
+            .join(User, BookArchive.user_id == User.id)  # JOIN with true condition
+            .order_by(User.name)
+        )
+
+        result = db.session.execute(stmt).scalars().all()
+    except sa.exc.IntegrityError as IE:
+        print("error occurred!")
+
 
 #     db.create_all()
 #     db.session.add(User(username="example"))

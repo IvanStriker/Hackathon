@@ -10,9 +10,37 @@
             <th>User</th>
             <th>Subcribed book quantity</th>
         </tr>
+        {% for user in users %}
         <tr>
-            <th>{{user.name}}</th>
-            <th>{{book_quantity}}</th>
+            <td>{{user.name}}</td>
+            <!-- filter -->
+            <td><a href="">{{user.book_archive.books|length()}}</a></td>
+            <!-- <td>
+                {% for book in user.book_archive.books %}
+                <a href="/" style="margin-right: 10px;">{{book.name}}</a>
+                {% endfor %}
+            </td> -->
         </tr>
+        {% endfor %}
+        
+        <tr>
+            <th>Name</th>
+            <th>Author</th>
+            <th>Category</th>
+            <th>Describe</th>
+            <th>Publication_date</th>
+            <th>Reading status</th>
+        </tr>
+        
+        {% for book in books %}
+        <tr>
+            <td>{{book.name}}</td>
+            <td>{{book.author}}</td>
+            <td>{{book.category}}</td>
+            <td>{{book.describe}}</td>
+            <td>{{book.publication_date}}</td>
+            <td>{{book.reading_status}}</td>
+        </tr>
+        {% endfor %}
     </table>
 {% endblock %}
