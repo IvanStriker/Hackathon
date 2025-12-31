@@ -39,7 +39,8 @@ migrate = Migrate(app=app, db=db)
 @app.context_processor
 def inject_user():
     try:
-        if session.get('user_id'):
+        # if session.get('user_id'):
+        if "user_id" in session.keys():
             return dict(active_user_id=session.get('user_id'))
         else:
             return dict(active_user_id=None)
@@ -49,7 +50,8 @@ def inject_user():
 @app.route("/")
 def load_root():
     users = db.session.execute(db.select(User).order_by(User.id)).scalars().all()
-    active_user_id = session.get("user_id") if session.get("user_id") else None
+    active_user_id = session.get("user_id") if ("user_id" in session.keys()) else None
+    # active_user_id = session.get("user_id") if session.get("user_id") else None => Error: session not has key "user_id"
     return render_template("home.html", users = users, active_user_id=active_user_id)
 
 @app.route("/user/<string:name>")
@@ -59,8 +61,8 @@ def load_user(name):
 @app.route("/users", methods=["POST", "GET"])
 def load_user_list():
     users = db.session.execute(db.select(User).order_by(User.name)).scalars()
-    active_user_id = session.get("user_id") if session.get("user_id") else None
-    return render_template("user/list.html", users=enumerate(users), active_user_id=active_user_id)
+    active_user_id = session.get("user_id") if ("user_id" in session.keys()) else None
+    return render_template("user/list.html", users=enumerate(users, 1), active_user_id=active_user_id)
 
 @app.route("/user/<int:id>/create")
 def create_user(id):
@@ -77,50 +79,68 @@ def user_detail(id):
 
 @app.route("/user/<int:id>/update", methods=["POST", "GET"])
 def update_user(id):
-    user = db.get_or_404(User, id)
     if request.method == "POST":
         try:
-            if session["user_id"] == user.id: #postman
-                name = request.form["name"]
-                email = request.form["email"]
+            # user = db.get_or_404(User, id)
+            if ("user_id" in session.keys()):
+                if session["user_id"] == id: #postman
+                    user = User.query.get(id)
 
-                user.modify_infor(name, email)
+                    name = request.form["name"]
+                    email = request.form["email"]
 
-                return redirect("/users")
-        
+                    user.modify_infor(name, email)
+                    return redirect(f"/users")
+                
+            return redirect('/login')
         # except sa.exc.IntegrityError as IE:
         except Exception as E:
             db.session.rollback()
             flash(f"{E}", "danger")
             return redirect(f"/user/{id}/update")
-        
-    if session["user_id"] != user.id:
-        return render_template("404_error.html")
-    return render_template("user/update.html", user=user)
+    
+    elif "user_id" in session.keys():
+        if session["user_id"] == id:
+            user = User.query.get(id)
+            return render_template("user/update.html", user=user)
+        else:
+            flash("That page does not exist!", "danger")
+            return redirect(f"/user/{session["user_id"]}/update")
+    
+    elif "user_id" not in session.keys():
+        flash("That page does not exist!", "danger")
+        return redirect("/users")
+    
+    flash("That page does not exist!", "danger")
+    return redirect(f"/user/{session["user_id"]}/update")
 
 @app.route("/user/<int:id>/delete")
 def delete_user(id):
-    user = db.get_or_404(User, id)
-    if user.id != session["user_id"]:
-        return render_template("404_error.html")
-        # return redirect("/users")
+    if "user_id" in session.keys():
+        user = db.get_or_404(User, id)
+        
+        if user.id != session["user_id"]:
+            return render_template("404_error.html")
+            # return redirect("/users")
 
-    try:
-        if user.user_books:
-            user.remove_all_from_archive()
-        db.session.delete(user)
-        db.session.commit()
-        return redirect("/users")
-    except Exception as e:
-        print(f"Error: {e}")
-        return f"Error: {e}"
+        try:
+            if user.user_books:
+                user.remove_all_from_archive()
+            db.session.delete(user)
+            db.session.commit()
+            return redirect("/users")
+        except Exception as E:
+            flash("That page does not exist!", "danger")
+            return redirect("/users")
     
+    return redirect('/login')
+
 @app.route("/user/<int:id>/archive")
 def load_user_archive(id):
-    user = db.get_or_404(User, id)
-
     try:
-        if session['user_id'] ==  user.id:
+        if session['user_id'] == id:
+            # user = db.get_or_404(User, id)
+            user = User.query.get(id)
             if user.user_books:
                 userbooks = user.user_books
                 return render_template("user/archive.html",  userbooks = enumerate(userbooks, 1))
@@ -128,9 +148,15 @@ def load_user_archive(id):
             return render_template("user/archive.html",  userbooks=None, message="You dont have any book in your archive!")
         # return render_template("404_error.html")
         raise ValueError("Error from func load_user_archive!")
-    except Exception as e:
-        print(f"Error: {e}")
-        return f"Error: {e}"
+    except Exception as E:
+        # print(E)
+        try:
+            flash("That page does not exist!", "danger")
+            return redirect(f'/user/{session['user_id']}/archive')
+        except Exception as E:
+            return redirect(f'/login')
+            
+        # return render_template("404_error.html")
     
 @app.route("/user/<int:user_id>/archive/book/<int:book_id>/add")
 def add_user_book(user_id, book_id):
@@ -147,11 +173,14 @@ def add_user_book(user_id, book_id):
 def remove_user_book(user_id, book_id):
     try:
         # user = db.get_or_404(User, id)
-        user = User.query.get(user_id)
-        if user_id != session["user_id"]:
-            raise ValueError
-        user.remove_from_archive(book_id)
-        return redirect(f"/user/{user_id}/archive")
+        if "user_id" in session.keys():
+            user = User.query.get(user_id)
+            if user_id != session["user_id"]:
+                raise ValueError
+            user.remove_from_archive(book_id)
+            flash("Book was removed successfully!", "success")
+            return redirect(f"/user/{user_id}/archive")
+        return redirect("/login")
     except Exception:
         return render_template("404_error.html")
     
@@ -159,24 +188,28 @@ def remove_user_book(user_id, book_id):
 def set_status_user_book(user_id, book_id):
 
     try:
-        if user_id != session["user_id"]:
-            raise ValueError
-        user = User.query.get(user_id)
-        user.update_reading_status(book_id)
-
-        return redirect(f"/user/{user_id}/archive")
+        if "user_id" in session.keys():
+            if user_id != session["user_id"]:
+                raise ValueError
+            
+            user = User.query.get(user_id)
+            user.update_reading_status(book_id)
+            return redirect(f"/user/{user_id}/archive")
+        
+        return redirect("/login")
     except Exception as E:
-        print(E)
         return render_template("404_error.html")
     
 @app.route("/books")
 def load_book_list():
     books = db.session.execute(db.select(Book).order_by(Book.name)).scalars().all()
     try:
-        user = User.query.get(session.get('user_id'))
-        if user:
+        # user = User.query.get(session.get('user_id')) # will raise an error in future because user_id is not finded in session
+        # if user:
+        if "user_id" in session.keys():
+            user = User.query.get(session.get('user_id'))
             user_books = [user_book.book_id for user_book in user.user_books]
-        else: 
+        else:
             user_books=[]
         return render_template("book/list.html", books = books, user_books = user_books)
     except Exception as E:
