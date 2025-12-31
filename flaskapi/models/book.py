@@ -1,17 +1,18 @@
 from sqlalchemy.orm import Mapped, mapped_column, validates, relationship
 from sqlalchemy import Integer, String, DateTime, ForeignKey
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 from db.base import db
 from datetime import datetime
 import re
 
 # Prevent circular import
 if TYPE_CHECKING:
-    from .bookarchive import BookArchive
+    # from .bookarchive import BookArchive
+    from .userbook import UserBook
 
 class Book(db.Model):
     """Create a model class"""
-    __tablename__ = "book"
+    __tablename__ = "books"
     # Primary Key is a special database constraint that uniquely identifies each row (record) in a table
     # UNIQUE constraint when you want to ensure that all values in a specific column (or a group of columns) are distinct from one another
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True, autoincrement=True) 
@@ -23,12 +24,9 @@ class Book(db.Model):
     # publisher: Mapped[str] = mapped_column(db.String(150), unique=False, nullable=False)
     # publication_date: Mapped[datetime] = mapped_column(db.DateTime, unique=False, nullable=False)
     publication_date: Mapped[String] = mapped_column(db.String(8), unique=False, nullable=False)
-    reading_status: Mapped[str] = mapped_column(db.String(10), unique=False, nullable=False)
 
-    archive_id: Mapped[int] = mapped_column(ForeignKey("bookarchive.id"), nullable=True)
-    
-    # Relationship to BookArchive (many books in book archive)
-    archive: Mapped["BookArchive"] = relationship("BookArchive", back_populates="books")
+    # Each Book has more UserBooks (many owners)
+    user_books: Mapped[List["UserBook"]] = relationship("UserBook", back_populates="book")
 
     # названием,
     # автором,

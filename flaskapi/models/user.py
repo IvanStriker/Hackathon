@@ -1,79 +1,104 @@
 from sqlalchemy.orm import Mapped, mapped_column, validates, relationship
-from typing import Optional, TYPE_CHECKING
+from flask import flash
+from typing import Optional, TYPE_CHECKING, List
 from sqlalchemy import Integer, String, ForeignKey
 from db.base import db
 import re
 
 # Prevent circular import
 if TYPE_CHECKING:
-    from .bookarchive import BookArchive
-    from .book import Book
+    # from .bookarchive import BookArchive
+    # from .book import Book
+    from .userbook import UserBook
 
 class User(db.Model):
     """Create a model class"""
-    __tablename__ = "user"
+    __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(db.Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(db.String(120), unique=False, nullable=False)
-    email: Mapped[str] = mapped_column(db.String(120), unique=True, nullable=True)
-    # archive_id: Mapped[Optional[int]] = mapped_column(ForeignKey("bookarchive.id"),unique=True, nullable=True)
+    name: Mapped[str] = mapped_column(db.String(30), unique=False, nullable=False)
+    email: Mapped[str] = mapped_column(db.String(50), unique=True, nullable=True)
+    username: Mapped[str] = mapped_column(db.String(50), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(db.String(50), unique=False, nullable=False)
+    # is_active: Mapped[bool] = mapped_column(db.Bool, unique=False, nullable=False, default=False)
     
-    # Relationship to BookArchive (each user has only one book archive)
-    # book_archive: Mapped["BookArchive"] = relationship("BookArchive", back_populates="user")
-    book_archive: Mapped["BookArchive"] = relationship(
-        "BookArchive", 
-        back_populates="user", 
-        uselist=False,  # each user has only one book archive
-        lazy="joined"
-    )
+    # Relationship to UserBook (each user has more user_books)
+    user_books: Mapped[List["UserBook"]] = relationship("UserBook", back_populates="user")
 
     @validates('name')
     def validate_name(self, key, name):
-        if len(name) > 120 or not (isinstance(name, str)) or re.match(r"\d", name):
-            raise ValueError("Invalid user name")
+        if len(name) > 30 or not (isinstance(name, str)) or re.match(r"\d", name):
+            raise ValueError("Invalid user name!")
         return name
     
     @validates('email')
-    def validate_email(self, key, address):
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", address):
-            raise ValueError("Invalid email address")
-        return address
+    def validate_email(self, key, email):
+        if (not re.match(r"[^@]+@[^@]+\.[^@]+", email)) or len(email) > 50:
+            raise ValueError("Invalid email!")
+        return email
     
+    @validates('username')
+    def validate_username(self, key, username):
+        if len(username) > 50 or not (isinstance(username, str)) or re.match(r"\d", username):
+            raise ValueError("Invalid username!")
+        return username
+    
+    @validates('password')
+    def validate_password(self, key, password):
+        if len(password) < 8:
+            raise ValueError("Invalid password (Password length must more than or equal 8 letters and does not contain special symbol)")
+        return password
     # добавлять книги в каталог,
     # редактировать сведения,
     # удалять записи,
-    # отмечать статус чтения,
+    # отмечать статус чтения (не начата / читаю / прочитана),
     # просматривать каталог.
 
-    def add_to_archive(self, book):
-        from models.bookarchive import BookArchive
-        from models.book import Book
-
-        if not self.book_archive:
-            self.book_archive = BookArchive(user_id=self.id)
-            db.session.add(self.book_archive)
-            db.session.flush()  # Take ID for book_archive
-
-        book.archive_id = self.book_archive.id
-
-        db.session.add(book)
+    def modify_infor(self, name, email):
+        self.name = name
+        self.email = email
         db.session.commit()
 
-        return book
+    def add_to_archive(self, book_id):
+        from .book import Book
+        from .userbook import UserBook
 
-    # def modify_infor():
-    #     db.session.add(Book)
-    #     db.session.commit()
+        if UserBook.query.filter((UserBook.user_id == self.id), (UserBook.book_id == book_id)).first() is not None:
+            flash("This book is already in your archive!", "warning")
+            return
 
-    # def remove_from_archive():
-    #     db.session.add(Book)
-    #     db.session.commit()
+        if Book.query.get(book_id) is None:
+            raise ValueError("Book id is not invalid")
+        
+        new_user_book = UserBook(user_id = self.id, book_id = book_id)
+        db.session.add(new_user_book)
+        db.session.commit()
 
-    # def mark_reading_status():
-    #     db.session.add(Book)
-    #     db.session.commit()
+    def remove_from_archive(self, book_id):
+        from .userbook import UserBook
+        # userbook = db.session.execute(db.select(UserBook).filter(UserBook.id == userbook_id)).scalar()
+        userbook = UserBook.query.filter((UserBook.user_id == self.id), (UserBook.book_id == book_id)).first()
+        if userbook:
+            db.session.delete(userbook)
+            db.session.commit()
+        else:
+            raise ValueError("Book was not finded!")
 
-    # def view_archive():
-    #     db.session.add(Book)
-    #     db.session.commit()
+    def remove_all_from_archive(self):
+        for userbook in self.user_books:
+            db.session.delete(userbook)
+            # db.session.flush()
+        db.session.commit()
+
+    def update_reading_status(self, book_id):
+        from .userbook import UserBook
+
+        statuses = {"unread": "reading", "reading": "completed", "completed": "unread"}
+        user_book = UserBook.query.filter_by(user_id = self.id, book_id = book_id).first()
+
+        user_book.reading_status = statuses[user_book.reading_status]
+        db.session.commit()
+
+        
+
 

@@ -6,41 +6,45 @@
 
 {% block content %}
     <table>
-        <tr>
+        <tr class="text-center table-head">
             <th>User</th>
             <th>Subcribed book quantity</th>
-        </tr>
-        {% for user in users %}
-        <tr>
-            <td>{{user.name}}</td>
-            <!-- filter -->
-            <td><a href="">{{user.book_archive.books|length()}}</a></td>
-            <!-- <td>
-                {% for book in user.book_archive.books %}
-                <a href="/" style="margin-right: 10px;">{{book.name}}</a>
-                {% endfor %}
-            </td> -->
-        </tr>
-        {% endfor %}
-        
-        <tr>
-            <th>Name</th>
-            <th>Author</th>
-            <th>Category</th>
-            <th>Describe</th>
-            <th>Publication_date</th>
+            <th>Book name</th>
             <th>Reading status</th>
         </tr>
-        
-        {% for book in books %}
-        <tr>
-            <td>{{book.name}}</td>
-            <td>{{book.author}}</td>
-            <td>{{book.category}}</td>
-            <td>{{book.describe}}</td>
-            <td>{{book.publication_date}}</td>
-            <td>{{book.reading_status}}</td>
+
+        {% for user in users %}
+        <tr class={{ loop.cycle('even', 'odd') }}>
+            <td>{{user.name}}</td>
+
+            <!-- filter jinja2 (|) -->
+            <td style="text-align: center;">
+                {% if active_user_id == user.id %}
+                    <a href="/user/{{active_user_id}}/archive">{{user.user_books|length()}}</a>
+                {% else %}
+                    <span>{{user.user_books|length()}}</span>
+                {% endif %}
+            </td>
+            
+            <td>
+                {% for ub in user.user_books %} 
+                    <ul type="none">
+                        <li>{{ub.book.name}}</li>
+                    </ul>
+                {% endfor %}
+            </td>
+
+            <td>
+                {% for ub in user.user_books %} 
+                    <ul type="none">
+                        <li>{{ub.reading_status}}</li>
+                    </ul>
+                {% endfor %}
+            </td>
+
+            <td>{{user.username}}</td>
+            <td>{{user.password}}</td>
         </tr>
         {% endfor %}
-    </table>
+    </table>    
 {% endblock %}

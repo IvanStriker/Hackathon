@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
 {% block title %}
-    <title>{{name}}</title>
+    <title>Users</title>
 {% endblock %}
 
 {% block content %}
     <Table>
-        <tr style="text-align: center; background-color: rgb(88, 175, 247);">
+        <tr class="table-head">
             <th>Id</th>
             <th>Name</th>
             <th>Email</th>
@@ -18,7 +18,14 @@
             <td>{{user.id}}</td>
             <td>{{user.name}}</td>
             <td>{{user.email}}</td>
-            <td><a href="/user/{{user.id}}/update" style="margin-right: 20px;">Edit</a><a href="/user/{{user.id}}/delete">Delete</a></td>
+            <td style="text-align: center;">
+                {% if active_user_id == user.id%}
+                    <a href="/user/{{user.id}}/update" style="margin-right: 20px;">Edit</a><a href="/user/{{user.id}}/delete">Delete</a>
+                {% else %}
+                <!-- <a href="/user/{{user.id}}/update" style="margin-right: 20px;">Edit</a><a href="/user/{{user.id}}/delete">Delete</a> -->
+                <span style="margin-right: 20px;">Edit</span><span>Delete</span>
+                {% endif %}
+            </td>
         </tr>
         {% endfor %}
     </Table>
