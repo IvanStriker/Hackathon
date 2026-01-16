@@ -21,9 +21,10 @@
 
 ```
 book-catalog-app/
-├── api/endpoints
-│   │   ├── __init__.py
-│   │   └── deps.py             
+├── api/
+│   ├── __init__.py
+│   ├── deps.py
+|   └── endpoints         
 ├── core/                       
 │   ├── __init__.py
 │   └── config.py           
@@ -47,8 +48,9 @@ book-catalog-app/
 │   ├── __init__.py
 │   ├── book.py                
 │   └── user.py                  
-├── static/img
-│       ├── Error-404-Page
+├── static/
+│       ├── img
+|       |   └── Error-404-Page
 │       └── books
 │           └── literature.json  
 ├── utilits/ 
@@ -84,12 +86,12 @@ book-catalog-app/
 - `pip freeze > requirements.txt` создание файла requirements для деплоя.
 
 #### 2. Создание обектов:
-- Пользователь
+- Пользователь\
 &emsp;&emsp;&emsp;+ id\
 &emsp;&emsp;&emsp;+ имя\
 &emsp;&emsp;&emsp;+ почта\
 &emsp;&emsp;&emsp;+ каталог
-- Книга
+- Книга\
 &emsp;&emsp;&emsp;+ id\
 &emsp;&emsp;&emsp;+ название\
 &emsp;&emsp;&emsp;+ автор\
@@ -195,8 +197,7 @@ POST /user/<int:id>/update
 | `id`      | `string` | **Required**. Id of user to update.|
 
 
-#### Get userTakes two numbers and returns the sum.
-
+#### Get user
 ```http
 GET /user/<int:id>/delete
 ```
@@ -205,10 +206,8 @@ GET /user/<int:id>/delete
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
 
-
-#### Get userTakes two numbers and returns the sum.
+#### Get user
 
 ```http
 GET /user/<int:id>/archive
@@ -218,10 +217,7 @@ GET /user/<int:id>/archive
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-
-
-#### Get userTakes two numbers and returns the sum.
+#### Get user
 
 ```http
 GET /user/<int:user_id>/archive/book/<int:book_id>/add
@@ -231,10 +227,8 @@ GET /user/<int:user_id>/archive/book/<int:book_id>/add
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
 
-
-#### Get userTakes two numbers and returns the sum.
+#### Get user
 
 ```http
 GET /user/<int:user_id>/archive/book/<int:book_id>/remove
@@ -244,11 +238,7 @@ GET /user/<int:user_id>/archive/book/<int:book_id>/remove
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-
-
-#### Get userTakes two numbers and returns the sum.
-
+#### Get user
 ```http
 GET /user/<int:user_id>/archive/book/<int:book_id>/status/update
 ```
@@ -257,11 +247,7 @@ GET /user/<int:user_id>/archive/book/<int:book_id>/status/update
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-
-
-#### Get userTakes two numbers and returns the sum.
-
+#### Get user
 ```http
 GET /books
 ```
@@ -270,11 +256,7 @@ GET /books
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-
-
-#### Get userTakes two numbers and returns the sum.
-
+#### Get user
 ```http
 GET /login", methods=["POST", "GET"]
 ```
@@ -283,11 +265,7 @@ GET /login", methods=["POST", "GET"]
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-
-
-#### Get userTakes two numbers and returns the sum.
-
+#### Get user
 ```http
 GET /logout", methods=["POST", "GET"]
 ```
@@ -296,11 +274,7 @@ GET /logout", methods=["POST", "GET"]
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-
-
-#### Get userTakes two numbers and returns the sum.
-
+#### Get user
 ```http
 GET /register", methods=["GET", "POST"]
 ```
@@ -309,11 +283,7 @@ GET /register", methods=["GET", "POST"]
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-Takes two numbers and returns the sum.
-
 #### Get user
-
 ```http
 GET /.well-known/appspecific/com.chrome.devtools.json
 ```
@@ -322,9 +292,6 @@ GET /.well-known/appspecific/com.chrome.devtools.json
 | :-------- | :------- | :-------------------------------- |
 | `id`      | `string` | **Required**. Id of item to fetch |
 
-#### add(num1, num2)
-
-Takes two numbers and returns the sum.
 
 #### Get user
 
