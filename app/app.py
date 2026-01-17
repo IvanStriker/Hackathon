@@ -13,6 +13,7 @@ import json
 import os
 from flask_migrate import Migrate
 from utils.read_json import book_data_list
+
 # import secrets
 
 # create the app
@@ -28,8 +29,9 @@ db.init_app(app)
 
 migrate = Migrate(app=app, db=db)
 
+
 # db = SQLAlchemy(app=app)
-    
+
 # user_book_m2m = db.Table(
 #     "user_book",
 #     sa.Column("user_id", sa.ForeignKey(User.id), primary_key=True),
@@ -38,7 +40,11 @@ migrate = Migrate(app=app, db=db)
 
 # Context processor - run before template render
 @app.context_processor
-def inject_user():
+def inject_user() -> dict | None:
+    """
+    Gives back a dict containing either current user's id
+     or None (if not authorized)
+     """
     try:
         # if session.get('user_id'):
         if "user_id" in session.keys():
@@ -48,43 +54,55 @@ def inject_user():
     except Exception as E:
         print("Error {E} occurred in func inject_user")
 
+
 @app.route("/")
 def load_root():
+    """Render home page with users list."""
     users = db.session.execute(db.select(User).order_by(User.id)).scalars().all()
     active_user_id = session.get("user_id") if ("user_id" in session.keys()) else None
     # active_user_id = session.get("user_id") if session.get("user_id") else None => Error: session not has key "user_id"
-    return render_template("home.html", users = users, active_user_id=active_user_id)
+    return render_template("home.html", users=users, active_user_id=active_user_id)
+
 
 @app.route("/user/<string:name>")
-def load_user(name):
+def load_user(name: str):
+    """Render user page by name."""
     return render_template("user/user.html", name=name.title())
+
 
 @app.route("/users", methods=["POST", "GET"])
 def load_user_list():
+    """Render list of all the users."""
     users = db.session.execute(db.select(User).order_by(User.name)).scalars()
     active_user_id = session.get("user_id") if ("user_id" in session.keys()) else None
     return render_template("user/list.html", users=enumerate(users, 1), active_user_id=active_user_id)
 
+
 @app.route("/user/<int:id>/create")
-def create_user(id):
+def create_user(id: int):
+    """Creates a new user and renders its profile page."""
     user = db.get_or_404(User, id)
     return render_template("user/detail.html", user=user)
 
+
 @app.route("/user/<int:id>/detail")
-def user_detail(id):
+def user_detail(id: int):
+    """Render user profile page."""
     # user = db.get_or_404(User, id, description=f"User with Id {id} not found!")
     user = User.query.get(id)
     if user is None:
         return render_template("user/detail.html", message=f"User with Id {id} was not found!")
     return render_template("user/detail.html", user=user)
 
+
 @app.route("/user/<int:id>/update", methods=["POST", "GET"])
-def update_user(id):
+def update_user(id: int):
+    """Updates the user's info."""
     if request.method == "POST":
         try:
             # user = db.get_or_404(User, id)
             if ("user_id" in session.keys()):
-                if session["user_id"] == id: #postman
+                if session["user_id"] == id:  # postman
                     user = User.query.get(id)
 
                     name = request.form["name"]
@@ -92,14 +110,14 @@ def update_user(id):
 
                     user.modify_infor(name, email)
                     return redirect(f"/users")
-                
+
             return redirect('/login')
         # except sa.exc.IntegrityError as IE:
         except Exception as E:
             db.session.rollback()
             flash(f"{E}", "danger")
             return redirect(f"/user/{id}/update")
-    
+
     elif "user_id" in session.keys():
         if session["user_id"] == id:
             user = User.query.get(id)
@@ -107,19 +125,21 @@ def update_user(id):
         else:
             flash("That page does not exist!", "danger")
             return redirect(f"/user/{session["user_id"]}/update")
-    
+
     elif "user_id" not in session.keys():
         flash("That page does not exist!", "danger")
         return redirect("/users")
-    
+
     flash("That page does not exist!", "danger")
     return redirect(f"/user/{session["user_id"]}/update")
 
+
 @app.route("/user/<int:id>/delete")
-def delete_user(id):
+def delete_user(id: int):
+    """Deletes the user."""
     if "user_id" in session.keys():
         user = db.get_or_404(User, id)
-        
+
         if user.id != session["user_id"]:
             return render_template("404_error.html")
             # return redirect("/users")
@@ -133,20 +153,23 @@ def delete_user(id):
         except Exception as E:
             flash("That page does not exist!", "danger")
             return redirect("/users")
-    
+
     return redirect('/login')
 
+
 @app.route("/user/<int:id>/archive")
-def load_user_archive(id):
+def load_user_archive(id: int):
+    """Render user's books archive."""
     try:
         if session['user_id'] == id:
             # user = db.get_or_404(User, id)
             user = User.query.get(id)
             if user.user_books:
                 userbooks = user.user_books
-                return render_template("user/archive.html",  userbooks = enumerate(userbooks, 1))
+                return render_template("user/archive.html", userbooks=enumerate(userbooks, 1))
             # return redirect(url_for("load_root"))
-            return render_template("user/archive.html",  userbooks=None, message="You dont have any book in your archive!")
+            return render_template("user/archive.html", userbooks=None,
+                                   message="You dont have any book in your archive!")
         # return render_template("404_error.html")
         raise ValueError("Error from func load_user_archive!")
     except Exception as E:
@@ -156,11 +179,13 @@ def load_user_archive(id):
             return redirect(f'/user/{session['user_id']}/archive')
         except Exception as E:
             return redirect(f'/login')
-            
+
         # return render_template("404_error.html")
-    
+
+
 @app.route("/user/<int:user_id>/archive/book/<int:book_id>/add")
-def add_user_book(user_id, book_id):
+def add_user_book(user_id: int, book_id: int):
+    """Adds a book to user's archive."""
     try:
         user = User.query.get(user_id)
         if user_id != session["user_id"]:
@@ -170,8 +195,10 @@ def add_user_book(user_id, book_id):
     except Exception:
         return render_template("404_error.html")
 
+
 @app.route("/user/<int:user_id>/archive/book/<int:book_id>/remove")
-def remove_user_book(user_id, book_id):
+def remove_user_book(user_id: int, book_id: int):
+    """Removes a book from user's archive."""
     try:
         # user = db.get_or_404(User, id)
         if "user_id" in session.keys():
@@ -184,25 +211,28 @@ def remove_user_book(user_id, book_id):
         return redirect("/login")
     except Exception:
         return render_template("404_error.html")
-    
-@app.route("/user/<int:user_id>/archive/book/<int:book_id>/status/update")
-def set_status_user_book(user_id, book_id):
 
+
+@app.route("/user/<int:user_id>/archive/book/<int:book_id>/status/update")
+def set_status_user_book(user_id: int, book_id: int):
+    """Updates reading status of the book."""
     try:
         if "user_id" in session.keys():
             if user_id != session["user_id"]:
                 raise ValueError
-            
+
             user = User.query.get(user_id)
             user.update_reading_status(book_id)
             return redirect(f"/user/{user_id}/archive")
-        
+
         return redirect("/login")
     except Exception as E:
         return render_template("404_error.html")
-    
+
+
 @app.route("/books")
 def load_book_list():
+    """Renders the list of all books."""
     books = db.session.execute(db.select(Book).order_by(Book.name)).scalars().all()
     try:
         # user = User.query.get(session.get('user_id')) # will raise an error in future because user_id is not finded in session
@@ -211,14 +241,16 @@ def load_book_list():
             user = User.query.get(session.get('user_id'))
             user_books = [user_book.book_id for user_book in user.user_books]
         else:
-            user_books=[]
-        return render_template("book/list.html", books = books, user_books = user_books)
+            user_books = []
+        return render_template("book/list.html", books=books, user_books=user_books)
     except Exception as E:
         print(f"Error: {E} occurred in func load_book_list!")
-        return render_template("book/list.html", books = books)
+        return render_template("book/list.html", books=books)
+
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
+    """Handles logging in."""
     if request.method == "POST":
         try:
             username_or_email = request.form["username"]
@@ -240,15 +272,15 @@ def login():
             if user is None:
                 flash("Login informations are incorrect", "danger")
                 return redirect(url_for("login"))
-            
-            if user.password != password: #Have to check password hash
+
+            if user.password != password:  # Have to check password hash
                 flash("Login informations are incorrect", "danger")
                 return redirect(url_for("login"))
-            
+
             session['user_id'] = user.id
             session['user_name'] = user.name
 
-            flash(f"Logged in successfully! Welcome {session['user_name'] } to website <(^_^)>", "success")
+            flash(f"Logged in successfully! Welcome {session['user_name']} to website <(^_^)>", "success")
 
             return redirect(url_for("load_root"))
         except Exception as E:
@@ -258,8 +290,10 @@ def login():
     return render_template("auth/login.html")
     # return render_template("authorization/login.html")
 
+
 @app.route("/logout", methods=["POST", "GET"])
 def logout():
+    """Handles user's logging out."""
     try:
         session.clear()
         # print(session.items())
@@ -269,9 +303,11 @@ def logout():
     except Exception as E:
         print(f"Error {E} occured in func logout")
         return redirect(url_for("load_root"))
-    
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    """Handles user's registration."""
     if request.method == "POST":
         try:
             username = request.form["username"]
@@ -281,7 +317,7 @@ def register():
 
             # print(request.form.to_dict())
 
-            if request.form.getlist("rememberme"): # get value checkbox input -> [] if not, ['on'] if has
+            if request.form.getlist("rememberme"):  # get value checkbox input -> [] if not, ['on'] if has
                 print(request.form.getlist("rememberme")[0])
 
             if db.session.execute(db.select(User).filter(User.username == username)).scalar():
@@ -289,13 +325,14 @@ def register():
 
             if db.session.execute(db.select(User).filter(User.email == email)).scalar():
                 raise ValueError("This email exists")
-            
+
             if password != confirm_password:
                 raise ValueError("Confirm password is not correct")
-            
+
             user_infor_form = request.form.to_dict()
-            user_infor_form["name"] = "user" + str(abs(username.__hash__()%(10**6)))
-            user_infor = {key: value for key, value in user_infor_form.items() if key in ["name", "email", "username", "password"]}
+            user_infor_form["name"] = "user" + str(abs(username.__hash__() % (10 ** 6)))
+            user_infor = {key: value for key, value in user_infor_form.items() if
+                          key in ["name", "email", "username", "password"]}
 
             new_user = User(**user_infor)
             db.session.add(new_user)
@@ -312,13 +349,18 @@ def register():
     return render_template("auth/register.html")
     # return render_template("authorization/register.html")
 
+
 @app.route("/.well-known/appspecific/com.chrome.devtools.json", methods=["GET"])
 def use_devtools():
+    """Renders devtools page"""
     return render_template("user/user.html", user="Developer")
 
+
 @app.errorhandler(404)
-def page_not_found(error):
+def page_not_found(error: Exception):
+    """Handles 404 errors."""
     return render_template('404_error.html'), 404
+
 
 # @app.route("/users/create", methods=["GET", "POST"])
 # def user_create():
@@ -335,12 +377,12 @@ def page_not_found(error):
 
 with app.app_context():
     user_infors = [{"name": "user1", "email": "email1@gmail.com", "username": "username1", "password": "password1"},
-                {"name": "user2", "email": "email2@gmail.com", "username": "username2", "password": "password2"},
-                {"name": "user3", "email": "email3@gmail.com", "username": "username3", "password": "password3"},
-                {"name": "user4", "email": "email4@gmail.com", "username": "username4", "password": "password4"},
-                {"name": "user5", "email": "email5@gmail.com", "username": "username5", "password": "password5"},
-                ]
-    
+                   {"name": "user2", "email": "email2@gmail.com", "username": "username2", "password": "password2"},
+                   {"name": "user3", "email": "email3@gmail.com", "username": "username3", "password": "password3"},
+                   {"name": "user4", "email": "email4@gmail.com", "username": "username4", "password": "password4"},
+                   {"name": "user5", "email": "email5@gmail.com", "username": "username5", "password": "password5"},
+                   ]
+
     # book_infors = [{"name": "book1", "author": "author1", "category": "category1", "describe": "describe1", "publication_date": "10.11.2025"},
     #             {"name": "book2", "author": "author2", "category": "category2", "describe": "describe2", "publication_date": "11.11.2025"},
     #             {"name": "book3", "author": "author3", "category": "category3", "describe": "describe3", "publication_date": "12.11.2025"},
@@ -361,7 +403,7 @@ with app.app_context():
         for book_inf in book_infors:
             db.session.add(Book(**book_inf))
             db.session.flush()
-        
+
         # AttributeError: 'Select' object has no attribute 'name'
         # user1 = select(User).where(User.id == 1)
 
@@ -369,17 +411,17 @@ with app.app_context():
         # .filter_by(assignment) # filter by condition
         # .order_by() # arrange by column
 
-        user1 = db.session.execute(db.select(User).filter_by(id = 1)).scalar()
+        user1 = db.session.execute(db.select(User).filter_by(id=1)).scalar()
         user1 = db.session.execute(db.select(User).filter(User.id == 1)).scalar()
         user2 = db.session.execute(db.select(User).filter(User.id == 2)).scalar()
         user3 = db.session.execute(db.select(User).filter(User.id == 3)).scalar()
         books = db.session.execute(db.select(Book).order_by(Book.name)).scalars().all()
 
-        db.session.add(UserBook(user=user1, book=books[1], reading_status = "completed"))
+        db.session.add(UserBook(user=user1, book=books[1], reading_status="completed"))
         db.session.add(UserBook(user=user1, book=books[2]))
 
         db.session.add(UserBook(user=user2, book=books[1]))
-        db.session.add(UserBook(user=user2, book=books[3], reading_status = "reading"))
+        db.session.add(UserBook(user=user2, book=books[3], reading_status="reading"))
 
         db.session.add(UserBook(user=user3, book=books[1]))
         db.session.add(UserBook(user=user3, book=books[2]))
