@@ -321,3 +321,7 @@ flask run
 2. Виноградов Иван 
 3. Симина Елизавета
 4. Дао Мань Зыонг
+
+## Скринкаст
+
+[см. google drive](https://drive.google.com/file/d/1VubG2k2f6lctuzlF88hefTEUGU1snbuY/view?usp=sharing)
